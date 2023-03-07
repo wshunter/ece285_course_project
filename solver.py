@@ -10,7 +10,7 @@ pos = np.vstack((np.cos(T*2*np.pi/30 - np.pi/2),np.sin(T*2*np.pi/30 - np.pi/2),T
 
 #bot was always moving forward and rotating a little bit.
 meas = {}
-#add relative odom constraints
+#add relative odom constraints (noiseless for now)
 for i in range(N-1):
     th = (pos[2,i+1] - pos[2,i]    +np.pi)%(2*np.pi)-np.pi
     rel_trans = rotmat(pos[2,i]).T @ (pos[:2,i+1] - pos[:2,i])
@@ -55,9 +55,12 @@ def H_all(state, meas, no_jac=False):
         return loss, grad_H
 
 
+#all-zero initialization fails to find the global minimum.
+x0 = np.zeros((3,N))
 
-#x0 = np.zeros((3,N))
-x0 = np.copy(pos) + np.random.normal(scale=1e-1, size=pos.shape)
+#set the noise to a large value (e.g. 1e1) and it will typically converge to a local minimum.
+
+x0 = np.copy(pos) + np.random.normal(scale=1e0, size=pos.shape)
 ybound = np.inf
 xsh = x0.shape
 lam = 1.0
@@ -70,12 +73,14 @@ for i in tqdm.trange(1000):
     losses.append(loss)
     update_state = True
     while(update_state):
+
         if lam < 1e-20:
             break
+        #I am taking the lambda term outside of the pinv as opposed to normal LMQ (so we decrease lambda on a failure) since I find it more natural to formulate the objective function this way. 
         upd = x0 - (np.linalg.pinv(grad.reshape((1,-1))) * lam*loss).reshape(xsh)
         ybound = H_all(upd, meas, no_jac=True)
+
         #print(f"Tried lam {lam}, {ybound} vs {loss}")
-        update_state = False
         if ybound >= loss:
             lam *= 1e-1
         else:

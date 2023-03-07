@@ -16,7 +16,7 @@ for i in range(N-1):
     rel_trans = rotmat(pos[2,i]).T @ (pos[:2,i+1] - pos[:2,i])
     meas[('b',i,i+1)] = np.asarray([[rel_trans[0],rel_trans[1],th]]).T
 meas[('b',0,N-1)] = np.zeros((3,1))
-meas[('p',0,)] = np.zeros((3,1))
+meas[('p',0,)] = pos[:,0,np.newaxis]
 rpos = np.vstack((pos[0,:],pos[1,:],np.cos(pos[2,:]),np.sin(pos[2,:])))
 
 #direct gradient descent solution
@@ -44,9 +44,9 @@ def H_all(state, meas, no_jac=False):
         if m[0] == 'p':
             #prior
             if no_jac:
-                loss += H_prior2(state[:,m[1]], meas[m], CINV=1e1*CINV,no_jac=no_jac)
+                loss += H_prior2(state[:,m[1]], meas[m], CINV=CINV,no_jac=no_jac)
             else:
-                l, jac_i = H_prior2(state[:,m[1]], meas[m], CINV=1e1*CINV,no_jac=no_jac)
+                l, jac_i = H_prior2(state[:,m[1]], meas[m], CINV=CINV,no_jac=no_jac)
                 grad_H[:,m[1]] += jac_i[0]
                 loss += l
     if no_jac:
@@ -108,7 +108,7 @@ def animate(idx):
     ax.plot(states[idx][0,:],states[idx][1,:], 'b')
     ax.set_title(idx)
 import matplotlib.animation as ani
-anim = ani.FuncAnimation(fig, animate, frames=range(len(states)))
+anim = ani.FuncAnimation(fig, animate, frames=range(0,len(states),10))
 plt.show()
 #plt.plot(x,y)
 #plt.show()

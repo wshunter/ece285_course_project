@@ -147,7 +147,7 @@ def solve_graph_convex(x0, measC, alpha=1.0, beta=1.0, n_steps = 1000, return_st
 
     if return_states:
         states = [x0]
-    print(f"\nOptimizing {x0.shape[1]} poses with {len(measC.keys())} constraints\n")
+    print(f"\nRelaxed: Optimizing {x0.shape[1]} poses with {len(measC.keys())} constraints\n")
     pbar = tqdm.trange(2000)
     for i in pbar:
         loss, grad = H_graph_conv(x0, measC)
@@ -181,6 +181,50 @@ def solve_graph_convex(x0, measC, alpha=1.0, beta=1.0, n_steps = 1000, return_st
         if return_states:
             states.append(np.copy(x0))
             
+    print("")
+
+    if return_states:
+        return x0, losses, lams, states
+    else:
+        return x0, losses, lams
+
+def solve_graph(x0,meas,CINV=np.identity(3),num_steps=1000,return_states=True):
+    ybound = np.inf
+    xsh = x0.shape
+    lam = 1.0
+    losses = []
+    lams = []
+
+    print(f"\nLMQ: Optimizing {x0.shape[1]} poses with {len(measC.keys())} constraints\n")
+
+    
+    if return_states:
+        states = [x0]
+    for i in tqdm.trange(num_steps):
+        loss, grad = H_all(x0, meas)
+        losses.append(loss)
+        update_state = True
+        while(update_state):
+
+            if lam < 1e-20:
+                break
+            #I am taking the lambda term outside of the pinv as opposed to normal LMQ (so we decrease lambda on a failure) since I find it more natural to formulate the objective function this way. 
+            upd = x0 - (np.linalg.pinv(grad.reshape((1,-1))) * lam*loss).reshape(xsh)
+            ybound = H_all(upd, meas, no_jac=True)
+
+            #print(f"Tried lam {lam}, {ybound} vs {loss}")
+            if ybound >= loss:
+                lam *= 1e-1
+            else:
+                update_state = False
+                lams.append(lam)
+        lam *= 2
+        #print("succeeded")
+
+        x0 = upd
+        if return_states:
+            states.append(np.copy(x0))
+
     print("")
 
     if return_states:

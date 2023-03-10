@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tqdm
-from geom import rotmat, delrotmat, H_between2, H_prior2, rotmatC, H_graph, H_graph_conv, solve_graph_convex
+from geom import rotmat, delrotmat, H_between2, H_prior2, rotmatC, H_graph, H_graph_conv, solve_graph_convex, solve_graph
 from convex import hull_so2, graph_hull_so2#, H_between2_conv
 
 N = 101
@@ -20,6 +20,8 @@ meas[('b',0,N-1)] = np.zeros((3,1))
 meas[('p',0,)] = pos[:,0,np.newaxis]
 rpos = np.vstack((pos[0,:],pos[1,:],np.cos(pos[2,:]),np.sin(pos[2,:])))
 
+xstart = 
+
 posC = hull_so2(pos)
 measC = graph_hull_so2(meas)
 
@@ -31,11 +33,13 @@ COV = np.diag([0.1,0.1,1.0])
 CINV = np.linalg.inv(COV)
 
 
-x0 = posC + np.random.normal(scale=1.0,size=posC.shape)
+
 #x0 = np.zeros_like(posC)
 x0[:,0] = posC[:,0]
 
 x0, losses, lams, states = solve_graph_convex(x0,measC)
+
+x0g, lossesg, lamsg, statesg = solve_graph(x0
 
 final_angles = np.arctan2(x0[3,:],x0[2,:])
 
